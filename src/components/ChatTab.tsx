@@ -12,6 +12,7 @@ import { Send, Hash, Users, Shield, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { DeleteChannelDialog } from './DeleteChannelDialog';
+import { isAdmin } from '@/utils/adminAuth';
 
 interface ChatRoom {
   id: string;
@@ -43,6 +44,7 @@ export const ChatTab = () => {
   const [pendingRoom, setPendingRoom] = useState<ChatRoom | null>(null);
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
   const [deleteChannelData, setDeleteChannelData] = useState<{room: ChatRoom} | null>(null);
+  const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
   const [newChannel, setNewChannel] = useState({
     name: '',
     description: '',
@@ -189,6 +191,45 @@ export const ChatTab = () => {
     }
   };
 
+  const adminDeleteChannel = async (channelId: string) => {
+    if (!user || !isAdmin(user)) {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can delete channels",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeletingChannelId(channelId);
+    try {
+      const { error } = await supabase
+        .from('chat_rooms')
+        .delete()
+        .eq('id', channelId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Channel Deleted",
+        description: "Chat channel has been permanently removed"
+      });
+      
+      fetchRooms();
+      if (activeRoom === channelId) {
+        setActiveRoom(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: "Could not delete channel",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingChannelId(null);
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeRoom || !user) return;
@@ -323,19 +364,35 @@ export const ChatTab = () => {
                     )}
                     <span className="text-sm font-medium text-foreground">{room.name}</span>
                   </div>
-                  {room.delete_code && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteChannelData({ room });
-                      }}
-                      className="p-1 h-auto text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {isAdmin(user) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          adminDeleteChannel(room.id);
+                        }}
+                        disabled={deletingChannelId === room.id}
+                        className="p-1 h-auto text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                    {room.delete_code && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteChannelData({ room });
+                        }}
+                        className="p-1 h-auto text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {room.description && (
                   <p className="text-xs text-muted-foreground mt-1">{room.description}</p>
