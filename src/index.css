@@ -33,9 +33,13 @@
   * {
     @apply border-border;
   }
-  body {
+  html, body {
     @apply bg-background text-foreground font-mono;
     font-family: 'JetBrains Mono', monospace;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    max-width: 100vw;
   }
 }
 
@@ -83,6 +87,7 @@
 
 .security-indicator {
   position: relative;
+  overflow: hidden;
 }
 
 .security-indicator::before {
@@ -94,6 +99,7 @@
   bottom: 0;
   background: linear-gradient(45deg, transparent 30%, rgba(0, 255, 65, 0.1) 50%, transparent 70%);
   animation: scan 3s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes scan {
