@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, MessageSquare, Shield, Lock, Terminal } from 'lucide-react';
+import { Plus, Users, MessageSquare, Shield, Lock, Terminal, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TopicDetail } from './TopicDetail';
 import { AccessCodeDialog } from './AccessCodeDialog';
+import { isAdmin } from '@/utils/adminAuth';
 interface Topic {
   id: string;
   title: string;
@@ -30,6 +31,7 @@ export const TopicsTab = () => {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [pendingTopic, setPendingTopic] = useState<Topic | null>(null);
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
   const [newTopic, setNewTopic] = useState({
     title: '',
     description: '',
@@ -115,6 +117,42 @@ export const TopicsTab = () => {
     if (pendingTopic) {
       setSelectedTopic(pendingTopic);
       setPendingTopic(null);
+    }
+  };
+
+  const deleteTopic = async (topicId: string) => {
+    if (!user || !isAdmin(user)) {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can delete topics",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setDeletingTopicId(topicId);
+    try {
+      const { error } = await supabase
+        .from('topics')
+        .delete()
+        .eq('id', topicId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Topic Deleted",
+        description: "Discussion topic has been permanently removed"
+      });
+      
+      fetchTopics();
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: "Could not delete topic",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingTopicId(null);
     }
   };
   const getSecurityBadge = (level: number) => {
@@ -214,10 +252,28 @@ export const TopicsTab = () => {
         {topics.map(topic => <Card key={topic.id} className="bg-card/50 border-primary/30 hover:border-primary/50 transition-colors security-indicator">
             <CardHeader>
               <div className="flex justify-between items-start">
-                <CardTitle className="text-primary text-lg">
-                  {topic.title}
-                </CardTitle>
-                {getSecurityBadge(topic.security_level || 1)}
+                <div className="flex-1">
+                  <CardTitle className="text-primary text-lg">
+                    {topic.title}
+                  </CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getSecurityBadge(topic.security_level || 1)}
+                  {isAdmin(user) && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTopic(topic.id);
+                      }}
+                      size="sm"
+                      variant="destructive"
+                      disabled={deletingTopicId === topic.id}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <CardDescription className="text-muted-foreground">
                 {topic.description || "No description available"}
