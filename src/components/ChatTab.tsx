@@ -263,9 +263,9 @@ export const ChatTab = () => {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4 lg:gap-6 h-[calc(100vh-12rem)]">
       {/* Room List */}
-      <Card className="col-span-1 bg-card/50 border-primary/30">
+      <Card className="lg:col-span-1 bg-card/50 border-primary/30 max-h-80 lg:max-h-none">
         <CardHeader>
           <CardTitle className="text-primary flex items-center justify-between">
             <div className="flex items-center">
@@ -278,7 +278,7 @@ export const ChatTab = () => {
                   <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-background border-primary/30">
+              <DialogContent className="bg-background border-primary/30 w-[95vw] max-w-md">
                 <DialogHeader>
                   <DialogTitle className="text-primary">Create New Channel</DialogTitle>
                 </DialogHeader>
@@ -352,19 +352,19 @@ export const ChatTab = () => {
                   activeRoom === room.id ? 'bg-primary/20' : ''
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div 
-                    className="flex items-center space-x-2 cursor-pointer flex-1"
+                    className="flex items-center space-x-2 cursor-pointer flex-1 min-w-0"
                     onClick={() => joinRoom(room)}
                   >
                     {room.is_private ? (
-                      <Shield className="h-4 w-4 text-secondary" />
+                      <Shield className="h-4 w-4 text-secondary flex-shrink-0" />
                     ) : (
-                      <Hash className="h-4 w-4 text-primary" />
+                      <Hash className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-foreground">{room.name}</span>
+                    <span className="text-sm font-medium text-foreground truncate">{room.name}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {isAdmin(user) && (
                       <Button
                         variant="ghost"
@@ -395,7 +395,7 @@ export const ChatTab = () => {
                   </div>
                 </div>
                 {room.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{room.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{room.description}</p>
                 )}
               </div>
             ))}
@@ -404,31 +404,31 @@ export const ChatTab = () => {
       </Card>
 
       {/* Chat Area */}
-      <Card className="col-span-3 bg-card/50 border-primary/30 flex flex-col">
-        <CardHeader>
-          <CardTitle className="text-primary flex items-center">
-            <Hash className="h-5 w-5 mr-2" />
-            {rooms.find(r => r.id === activeRoom)?.name || 'Select a channel'}
-            <Users className="h-4 w-4 ml-auto text-muted-foreground" />
+      <Card className="lg:col-span-3 bg-card/50 border-primary/30 flex flex-col flex-1">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-primary flex items-center text-base lg:text-lg">
+            <Hash className="h-5 w-5 mr-2 flex-shrink-0" />
+            <span className="truncate">{rooms.find(r => r.id === activeRoom)?.name || 'Select a channel'}</span>
+            <Users className="h-4 w-4 ml-auto text-muted-foreground flex-shrink-0" />
           </CardTitle>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col p-0">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 p-2 lg:p-4">
+            <div className="space-y-3 lg:space-y-4">
               {messages.map((message) => (
-                <div key={message.id} className="flex space-x-3">
-                  <div className="flex-1">
+                <div key={message.id} className="flex space-x-2 lg:space-x-3">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm font-semibold text-primary">
+                      <span className="text-sm font-semibold text-primary truncate">
                         {message.profiles?.hacker_id || 'Anonymous'}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         {message.created_at ? new Date(message.created_at).toLocaleTimeString() : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground">{message.content}</p>
+                    <p className="text-sm text-foreground break-words">{message.content}</p>
                   </div>
                 </div>
               ))}
@@ -436,15 +436,15 @@ export const ChatTab = () => {
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="p-4 border-t border-primary/30">
+          <div className="p-2 lg:p-4 border-t border-primary/30">
             <form onSubmit={sendMessage} className="flex space-x-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a secure message..."
-                className="flex-1 bg-input border-primary/30 focus:border-primary"
+                className="flex-1 bg-input border-primary/30 focus:border-primary text-sm"
               />
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
+              <Button type="submit" className="bg-primary hover:bg-primary/90 px-3">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
