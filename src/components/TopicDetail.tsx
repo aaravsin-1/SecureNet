@@ -21,6 +21,7 @@ import {
   Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { KeyManager } from '@/utils/encryption';
 
 interface Topic {
   id: string;
@@ -97,7 +98,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores for each post
+      // Calculate vote scores and decrypt post data
       const postsWithVotes = await Promise.all(
         (data || []).map(async (post) => {
           const { data: votes } = await supabase
@@ -112,8 +113,14 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
             .select('id', { count: 'exact' })
             .eq('post_id', post.id);
           
+          // Decrypt post data
+          const decryptedTitle = await KeyManager.decryptIfAvailable(post.title);
+          const decryptedContent = post.content ? await KeyManager.decryptIfAvailable(post.content) : null;
+          
           return {
             ...post,
+            title: decryptedTitle,
+            content: decryptedContent,
             vote_score: voteScore,
             comment_count: commentCount?.length || 0
           };
@@ -148,7 +155,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores for each comment
+      // Calculate vote scores and decrypt comment data
       const commentsWithVotes = await Promise.all(
         (data || []).map(async (comment) => {
           const { data: votes } = await supabase
@@ -158,8 +165,12 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
           
           const voteScore = votes?.reduce((sum, vote) => sum + (vote.vote_type || 0), 0) || 0;
           
+          // Decrypt comment content
+          const decryptedContent = await KeyManager.decryptIfAvailable(comment.content);
+          
           return {
             ...comment,
+            content: decryptedContent,
             vote_score: voteScore
           };
         })
@@ -179,11 +190,16 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
     if (!newPost.title.trim() || !user) return;
 
     try {
+      // Encrypt post data before storing
+      const encryptedTitle = await KeyManager.encryptIfAvailable(newPost.title.trim());
+      const encryptedContent = newPost.content.trim() ? 
+        await KeyManager.encryptIfAvailable(newPost.content.trim()) : null;
+
       const { error } = await supabase
         .from('posts')
         .insert({
-          title: newPost.title.trim(),
-          content: newPost.content.trim() || null,
+          title: encryptedTitle,
+          content: encryptedContent,
           topic_id: topic.id,
           author_id: user.id
         });
@@ -211,10 +227,13 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
     if (!newComment.trim() || !user) return;
 
     try {
+      // Encrypt comment content before storing
+      const encryptedContent = await KeyManager.encryptIfAvailable(newComment.trim());
+
       const { error } = await supabase
         .from('comments')
         .insert({
-          content: newComment.trim(),
+          content: encryptedContent,
           post_id: postId,
           parent_id: parentId || null,
           author_id: user.id

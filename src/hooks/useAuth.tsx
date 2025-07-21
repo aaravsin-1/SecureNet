@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { auditAuth } from '@/utils/auditLogger';
+import { KeyManager } from '@/utils/encryption';
 
 interface AuthContextType {
   user: User | null;
@@ -67,6 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
     } else {
+      // Initialize encryption key for new users
+      await KeyManager.initializeFromPassword(password);
+      
       toast({
         title: "Account Created",
         description: "Check your email to verify your account",
@@ -89,6 +93,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
     } else {
+      // Initialize encryption key from password
+      await KeyManager.initializeFromPassword(password);
+      
       toast({
         title: "Access Granted",
         description: "Welcome to the secure network",
@@ -100,6 +107,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    
+    // Clear encryption key on logout
+    KeyManager.clearKey();
+    
     toast({
       title: "Connection Terminated",
       description: "You have been logged out securely",
