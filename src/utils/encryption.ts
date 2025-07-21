@@ -180,8 +180,22 @@ export class KeyManager {
     return text; // Fallback to unencrypted if no key
   }
 
+  // Check if data looks like encrypted data (base64 format with sufficient length)
+  static isLikelyEncrypted(data: string): boolean {
+    if (!data || data.length < 20) return false;
+    
+    // Check if it's base64-like (contains only valid base64 characters)
+    const base64Regex = /^[A-Za-z0-9+/=]+$/;
+    return base64Regex.test(data) && data.length > 50; // Encrypted data should be longer
+  }
+
   // Decrypt data if key is available
   static async decryptIfAvailable(encryptedText: string): Promise<string> {
+    // If data doesn't look encrypted, return as-is
+    if (!this.isLikelyEncrypted(encryptedText)) {
+      return encryptedText;
+    }
+
     const key = await this.getCurrentKey();
     if (key) {
       try {
