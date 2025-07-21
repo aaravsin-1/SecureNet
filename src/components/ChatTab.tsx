@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { DeleteChannelDialog } from './DeleteChannelDialog';
 import { isAdmin } from '@/utils/adminAuth';
-import { KeyManager } from '@/utils/encryption';
 
 interface ChatRoom {
   id: string;
@@ -77,17 +76,9 @@ export const ChatTab = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Decrypt room data
-      const decryptedRooms = await Promise.all((data || []).map(async (room) => ({
-        ...room,
-        name: await KeyManager.decryptIfAvailable(room.name),
-        description: room.description ? await KeyManager.decryptIfAvailable(room.description) : null
-      })));
-      
-      setRooms(decryptedRooms);
-      if (decryptedRooms && decryptedRooms.length > 0) {
-        setActiveRoom(decryptedRooms[0].id);
+      setRooms(data || []);
+      if (data && data.length > 0) {
+        setActiveRoom(data[0].id);
       }
     } catch (error) {
       toast({
@@ -117,14 +108,7 @@ export const ChatTab = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
-      // Decrypt message content
-      const decryptedMessages = await Promise.all((data || []).map(async (message) => ({
-        ...message,
-        content: await KeyManager.decryptIfAvailable(message.content)
-      })));
-      
-      setMessages(decryptedMessages);
+      setMessages(data || []);
     } catch (error) {
       toast({
         title: "Message Error",
@@ -147,14 +131,8 @@ export const ChatTab = () => {
           table: 'chat_messages',
           filter: `room_id=eq.${activeRoom}`
         },
-        async (payload) => {
-          const newMessage = payload.new as ChatMessage;
-          // Decrypt incoming message content
-          const decryptedMessage = {
-            ...newMessage,
-            content: await KeyManager.decryptIfAvailable(newMessage.content)
-          };
-          setMessages(prev => [...prev, decryptedMessage]);
+        (payload) => {
+          setMessages(prev => [...prev, payload.new as ChatMessage]);
         }
       )
       .subscribe();
@@ -168,16 +146,11 @@ export const ChatTab = () => {
     if (!newChannel.name.trim() || !user) return;
 
     try {
-      // Encrypt channel data before storing
-      const encryptedName = await KeyManager.encryptIfAvailable(newChannel.name.trim());
-      const encryptedDescription = newChannel.description.trim() ? 
-        await KeyManager.encryptIfAvailable(newChannel.description.trim()) : null;
-
       const { error } = await supabase
         .from('chat_rooms')
         .insert({
-          name: encryptedName,
-          description: encryptedDescription,
+          name: newChannel.name.trim(),
+          description: newChannel.description.trim() || null,
           is_private: newChannel.isPrivate,
           access_code: newChannel.isPrivate ? newChannel.accessCode.trim() || null : null,
           delete_code: newChannel.deleteCode.trim() || null
@@ -262,15 +235,12 @@ export const ChatTab = () => {
     if (!newMessage.trim() || !activeRoom || !user) return;
 
     try {
-      // Encrypt message content before sending
-      const encryptedContent = await KeyManager.encryptIfAvailable(newMessage.trim());
-
       const { error } = await supabase
         .from('chat_messages')
         .insert({
           room_id: activeRoom,
           author_id: user.id,
-          content: encryptedContent
+          content: newMessage.trim()
         });
 
       if (error) throw error;

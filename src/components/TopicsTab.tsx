@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { TopicDetail } from './TopicDetail';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { isAdmin } from '@/utils/adminAuth';
-import { KeyManager } from '@/utils/encryption';
 interface Topic {
   id: string;
   title: string;
@@ -59,15 +58,7 @@ export const TopicsTab = () => {
         ascending: false
       });
       if (error) throw error;
-      
-      // Decrypt topic data
-      const decryptedTopics = await Promise.all((data || []).map(async (topic) => ({
-        ...topic,
-        title: await KeyManager.decryptIfAvailable(topic.title),
-        description: topic.description ? await KeyManager.decryptIfAvailable(topic.description) : null
-      })));
-      
-      setTopics(decryptedTopics);
+      setTopics(data || []);
     } catch (error) {
       toast({
         title: "Access Error",
@@ -83,17 +74,11 @@ export const TopicsTab = () => {
     try {
       const slug = newTopic.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const securityLevel = parseInt(newTopic.securityLevel);
-      
-      // Encrypt sensitive data before storing
-      const encryptedTitle = await KeyManager.encryptIfAvailable(newTopic.title.trim());
-      const encryptedDescription = newTopic.description.trim() ? 
-        await KeyManager.encryptIfAvailable(newTopic.description.trim()) : null;
-      
       const {
         error
       } = await supabase.from('topics').insert({
-        title: encryptedTitle,
-        description: encryptedDescription,
+        title: newTopic.title.trim(),
+        description: newTopic.description.trim() || null,
         slug: `${slug}-${Date.now()}`,
         creator_id: user.id,
         security_level: securityLevel,
