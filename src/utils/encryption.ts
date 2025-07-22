@@ -122,6 +122,17 @@ export function generateEncryptionKey(): string {
 }
 
 /**
+ * Generate a deterministic encryption key from a seed (for shared encryption)
+ */
+export async function generateSharedKey(seed: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(seed);
+  const hash = await window.crypto.subtle.digest('SHA-256', data);
+  const array = new Uint8Array(hash);
+  return btoa(String.fromCharCode(...array));
+}
+
+/**
  * Encrypt object properties
  */
 export async function encryptObject<T extends Record<string, any>>(

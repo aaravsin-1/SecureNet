@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { DeleteChannelDialog } from './DeleteChannelDialog';
 import { isAdmin } from '@/utils/adminAuth';
-import { encryptObject, decryptObject } from '@/utils/encryption';
+import { encryptObject, decryptObject, generateSharedKey } from '@/utils/encryption';
 
 interface ChatRoom {
   id: string;
@@ -80,10 +80,11 @@ export const ChatTab = () => {
 
       if (error) throw error;
       
-      // Decrypt sensitive data
+      // Decrypt sensitive data using room-specific keys
       const decryptedRooms = await Promise.all(
         (data || []).map(async (room) => {
-          return await decryptObject(room, ['name', 'description'], encryptionKey);
+          const roomKey = await generateSharedKey(`room_${room.id}`);
+          return await decryptObject(room, ['name', 'description'], roomKey);
         })
       );
       
@@ -120,10 +121,11 @@ export const ChatTab = () => {
 
       if (error) throw error;
       
-      // Decrypt message content
+      // Decrypt message content using room-specific key
+      const roomKey = await generateSharedKey(`room_${activeRoom}`);
       const decryptedMessages = await Promise.all(
         (data || []).map(async (message) => {
-          return await decryptObject(message, ['content'], encryptionKey);
+          return await decryptObject(message, ['content'], roomKey);
         })
       );
       
@@ -151,13 +153,14 @@ export const ChatTab = () => {
           filter: `room_id=eq.${activeRoom}`
         },
         async (payload) => {
-          if (!encryptionKey) return;
+          if (!encryptionKey || !activeRoom) return;
           
-          // Decrypt new message
+          // Decrypt new message using room-specific key
+          const roomKey = await generateSharedKey(`room_${activeRoom}`);
           const decryptedMessage = await decryptObject(
             payload.new as ChatMessage,
             ['content'],
-            encryptionKey
+            roomKey
           );
           
           setMessages(prev => [...prev, decryptedMessage]);
@@ -174,26 +177,38 @@ export const ChatTab = () => {
     if (!newChannel.name.trim() || !user || !encryptionKey) return;
 
     try {
-      // Encrypt sensitive data before sending to backend
+      // First create the room to get its ID
+      const { data: createdRoom, error: createError } = await supabase
+        .from('chat_rooms')
+        .insert({
+          is_private: newChannel.isPrivate,
+          access_code: newChannel.isPrivate ? newChannel.accessCode.trim() || null : null,
+          delete_code: newChannel.deleteCode.trim() || null,
+          name: 'temp', // temporary placeholder
+          description: 'temp' // temporary placeholder
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Now encrypt and update with the room-specific key
+      const roomKey = await generateSharedKey(`room_${createdRoom.id}`);
       const encryptedData = await encryptObject(
         {
           name: newChannel.name.trim(),
           description: newChannel.description.trim() || null,
         },
         ['name', 'description'],
-        encryptionKey
+        roomKey
       );
       
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('chat_rooms')
-        .insert({
-          ...encryptedData,
-          is_private: newChannel.isPrivate,
-          access_code: newChannel.isPrivate ? newChannel.accessCode.trim() || null : null,
-          delete_code: newChannel.deleteCode.trim() || null
-        });
+        .update(encryptedData)
+        .eq('id', createdRoom.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast({
         title: "Channel Created",
@@ -272,11 +287,12 @@ export const ChatTab = () => {
     if (!newMessage.trim() || !activeRoom || !user || !encryptionKey) return;
 
     try {
-      // Encrypt message content before sending
+      // Encrypt message content using room-specific key
+      const roomKey = await generateSharedKey(`room_${activeRoom}`);
       const encryptedData = await encryptObject(
         { content: newMessage.trim() },
         ['content'],
-        encryptionKey
+        roomKey
       );
       
       const { error } = await supabase

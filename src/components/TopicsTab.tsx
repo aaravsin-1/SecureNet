@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { TopicDetail } from './TopicDetail';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { isAdmin } from '@/utils/adminAuth';
-import { encryptObject, decryptObject } from '@/utils/encryption';
+import { encryptObject, decryptObject, generateSharedKey } from '@/utils/encryption';
 interface Topic {
   id: string;
   title: string;
@@ -59,10 +59,11 @@ export const TopicsTab = () => {
       
       if (error) throw error;
       
-      // Decrypt sensitive data
+      // Decrypt sensitive data using topic-specific keys
       const decryptedTopics = await Promise.all(
         (data || []).map(async (topic) => {
-          return await decryptObject(topic, ['title', 'description'], encryptionKey);
+          const topicKey = await generateSharedKey(`topic_${topic.id}`);
+          return await decryptObject(topic, ['title', 'description'], topicKey);
         })
       );
       
@@ -84,25 +85,34 @@ export const TopicsTab = () => {
       const slug = newTopic.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const securityLevel = parseInt(newTopic.securityLevel);
       
-      // Encrypt sensitive data before sending to backend
+      // First create the topic to get its ID
+      const { data: createdTopic, error: createError } = await supabase.from('topics').insert({
+        slug: `${slug}-${Date.now()}`,
+        creator_id: user.id,
+        security_level: securityLevel,
+        access_code: securityLevel > 1 ? newTopic.accessCode.trim() || null : null,
+        title: 'temp', // temporary placeholder
+        description: 'temp' // temporary placeholder
+      }).select().single();
+      
+      if (createError) throw createError;
+      
+      // Now encrypt and update with the topic-specific key
+      const topicKey = await generateSharedKey(`topic_${createdTopic.id}`);
       const encryptedData = await encryptObject(
         {
           title: newTopic.title.trim(),
           description: newTopic.description.trim() || null,
         },
         ['title', 'description'],
-        encryptionKey
+        topicKey
       );
       
-      const { error } = await supabase.from('topics').insert({
-        ...encryptedData,
-        slug: `${slug}-${Date.now()}`,
-        creator_id: user.id,
-        security_level: securityLevel,
-        access_code: securityLevel > 1 ? newTopic.accessCode.trim() || null : null
-      });
+      const { error: updateError } = await supabase.from('topics')
+        .update(encryptedData)
+        .eq('id', createdTopic.id);
       
-      if (error) throw error;
+      if (updateError) throw updateError;
       
       toast({
         title: "Topic Created",

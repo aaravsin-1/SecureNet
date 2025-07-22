@@ -21,7 +21,7 @@ import {
   Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { encryptObject, decryptObject } from '@/utils/encryption';
+import { encryptObject, decryptObject, generateSharedKey } from '@/utils/encryption';
 
 interface Topic {
   id: string;
@@ -100,7 +100,8 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores and decrypt posts
+      // Calculate vote scores and decrypt posts using topic-specific key
+      const topicKey = await generateSharedKey(`topic_${topic.id}`);
       const postsWithVotes = await Promise.all(
         (data || []).map(async (post) => {
           const { data: votes } = await supabase
@@ -116,7 +117,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
             .eq('post_id', post.id);
           
           // Decrypt post content
-          const decryptedPost = await decryptObject(post, ['title', 'content'], encryptionKey);
+          const decryptedPost = await decryptObject(post, ['title', 'content'], topicKey);
           
           return {
             ...decryptedPost,
@@ -156,7 +157,8 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores and decrypt comments
+      // Calculate vote scores and decrypt comments using topic-specific key
+      const topicKey = await generateSharedKey(`topic_${topic.id}`);
       const commentsWithVotes = await Promise.all(
         (data || []).map(async (comment) => {
           const { data: votes } = await supabase
@@ -167,7 +169,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
           const voteScore = votes?.reduce((sum, vote) => sum + (vote.vote_type || 0), 0) || 0;
           
           // Decrypt comment content
-          const decryptedComment = await decryptObject(comment, ['content'], encryptionKey);
+          const decryptedComment = await decryptObject(comment, ['content'], topicKey);
           
           return {
             ...decryptedComment,
@@ -190,14 +192,15 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
     if (!newPost.title.trim() || !user || !encryptionKey) return;
 
     try {
-      // Encrypt post content before sending
+      // Encrypt post content using topic-specific key
+      const topicKey = await generateSharedKey(`topic_${topic.id}`);
       const encryptedData = await encryptObject(
         {
           title: newPost.title.trim(),
           content: newPost.content.trim() || null,
         },
         ['title', 'content'],
-        encryptionKey
+        topicKey
       );
       
       const { error } = await supabase
@@ -231,11 +234,12 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
     if (!newComment.trim() || !user || !encryptionKey) return;
 
     try {
-      // Encrypt comment content before sending
+      // Encrypt comment content using topic-specific key
+      const topicKey = await generateSharedKey(`topic_${topic.id}`);
       const encryptedData = await encryptObject(
         { content: newComment.trim() },
         ['content'],
-        encryptionKey
+        topicKey
       );
       
       const { error } = await supabase
