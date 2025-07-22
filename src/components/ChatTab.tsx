@@ -263,11 +263,7 @@ export const ChatTab = () => {
   }
 
   return (
-<<<<<<< HEAD
     <div className="grid grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
-=======
-    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4 lg:gap-6 h-[calc(100vh-12rem)]">
->>>>>>> parent of 67d0b4a (Visual edit in Lovable)
       {/* Room List */}
       <Card className="col-span-1 bg-card/50 border-primary/30">
         <CardHeader>
@@ -356,7 +352,6 @@ export const ChatTab = () => {
                   activeRoom === room.id ? 'bg-primary/20' : ''
                 }`}
               >
-<<<<<<< HEAD
                 <div className="flex items-center justify-between">
                   <div 
                     className="flex items-center space-x-2 cursor-pointer flex-1"
@@ -370,21 +365,6 @@ export const ChatTab = () => {
                     <span className="text-sm font-medium text-foreground">{room.name}</span>
                   </div>
                   <div className="flex items-center gap-1">
-=======
-                <div className="flex items-center justify-between gap-2">
-                  <div 
-                    className="flex items-center space-x-2 cursor-pointer flex-1 min-w-0"
-                    onClick={() => joinRoom(room)}
-                  >
-                    {room.is_private ? (
-                      <Shield className="h-4 w-4 text-secondary flex-shrink-0" />
-                    ) : (
-                      <Hash className="h-4 w-4 text-primary flex-shrink-0" />
-                    )}
-                    <span className="text-sm font-medium text-foreground truncate">{room.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
->>>>>>> parent of 67d0b4a (Visual edit in Lovable)
                     {isAdmin(user) && (
                       <Button
                         variant="ghost"
@@ -415,11 +395,7 @@ export const ChatTab = () => {
                   </div>
                 </div>
                 {room.description && (
-<<<<<<< HEAD
                   <p className="text-xs text-muted-foreground mt-1">{room.description}</p>
-=======
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{room.description}</p>
->>>>>>> parent of 67d0b4a (Visual edit in Lovable)
                 )}
               </div>
             ))}
@@ -439,19 +415,11 @@ export const ChatTab = () => {
         
         <CardContent className="flex-1 flex flex-col p-0">
           {/* Messages */}
-<<<<<<< HEAD
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div key={message.id} className="flex space-x-3">
                   <div className="flex-1">
-=======
-          <ScrollArea className="flex-1 p-2 lg:p-4">
-            <div className="space-y-3 lg:space-y-4">
-              {messages.map((message) => (
-                <div key={message.id} className="flex space-x-2 lg:space-x-3">
-                  <div className="flex-1 min-w-0">
->>>>>>> parent of 67d0b4a (Visual edit in Lovable)
                     <div className="flex items-center space-x-2 mb-1">
                       <span className="text-sm font-semibold text-primary">
                         {message.profiles?.hacker_id || 'Anonymous'}
@@ -474,15 +442,9 @@ export const ChatTab = () => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a secure message..."
-<<<<<<< HEAD
                 className="flex-1 bg-input border-primary/30 focus:border-primary"
               />
               <Button type="submit" className="bg-primary hover:bg-primary/90">
-=======
-                className="flex-1 bg-input border-primary/30 focus:border-primary text-sm"
-              />
-              <Button type="submit" className="bg-primary hover:bg-primary/90 px-3">
->>>>>>> parent of 67d0b4a (Visual edit in Lovable)
                 <Send className="h-4 w-4" />
               </Button>
             </form>
