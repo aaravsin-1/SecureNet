@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { TopicDetail } from './TopicDetail';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { isAdmin } from '@/utils/adminAuth';
+import { encryptObject, decryptObject } from '@/utils/encryption';
 interface Topic {
   id: string;
   title: string;
@@ -38,27 +39,34 @@ export const TopicsTab = () => {
     securityLevel: '1',
     accessCode: ''
   });
-  const {
-    user
-  } = useAuth();
+  const { user, encryptionKey } = useAuth();
   const {
     toast
   } = useToast();
   useEffect(() => {
-    if (user) {
+    if (user && encryptionKey) {
       fetchTopics();
     }
-  }, [user]);
+  }, [user, encryptionKey]);
   const fetchTopics = async () => {
+    if (!encryptionKey) return;
+    
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('topics').select('*').order('created_at', {
-        ascending: false
-      });
+      const { data, error } = await supabase
+        .from('topics')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      setTopics(data || []);
+      
+      // Decrypt sensitive data
+      const decryptedTopics = await Promise.all(
+        (data || []).map(async (topic) => {
+          return await decryptObject(topic, ['title', 'description'], encryptionKey);
+        })
+      );
+      
+      setTopics(decryptedTopics);
     } catch (error) {
       toast({
         title: "Access Error",
@@ -70,25 +78,37 @@ export const TopicsTab = () => {
     }
   };
   const createTopic = async () => {
-    if (!newTopic.title.trim() || !user) return;
+    if (!newTopic.title.trim() || !user || !encryptionKey) return;
+    
     try {
       const slug = newTopic.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
       const securityLevel = parseInt(newTopic.securityLevel);
-      const {
-        error
-      } = await supabase.from('topics').insert({
-        title: newTopic.title.trim(),
-        description: newTopic.description.trim() || null,
+      
+      // Encrypt sensitive data before sending to backend
+      const encryptedData = await encryptObject(
+        {
+          title: newTopic.title.trim(),
+          description: newTopic.description.trim() || null,
+        },
+        ['title', 'description'],
+        encryptionKey
+      );
+      
+      const { error } = await supabase.from('topics').insert({
+        ...encryptedData,
         slug: `${slug}-${Date.now()}`,
         creator_id: user.id,
         security_level: securityLevel,
         access_code: securityLevel > 1 ? newTopic.accessCode.trim() || null : null
       });
+      
       if (error) throw error;
+      
       toast({
         title: "Topic Created",
         description: "New discussion topic has been created"
       });
+      
       setNewTopic({
         title: '',
         description: '',

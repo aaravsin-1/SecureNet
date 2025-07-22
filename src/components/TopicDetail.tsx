@@ -21,6 +21,7 @@ import {
   Send
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { encryptObject, decryptObject } from '@/utils/encryption';
 
 interface Topic {
   id: string;
@@ -72,16 +73,18 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
   const [newPost, setNewPost] = useState({ title: '', content: '' });
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, encryptionKey } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user && encryptionKey) {
       fetchPosts();
     }
-  }, [user, topic.id]);
+  }, [user, encryptionKey, topic.id]);
 
   const fetchPosts = async () => {
+    if (!encryptionKey) return;
+    
     try {
       const { data, error } = await supabase
         .from('posts')
@@ -97,7 +100,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores for each post
+      // Calculate vote scores and decrypt posts
       const postsWithVotes = await Promise.all(
         (data || []).map(async (post) => {
           const { data: votes } = await supabase
@@ -112,8 +115,11 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
             .select('id', { count: 'exact' })
             .eq('post_id', post.id);
           
+          // Decrypt post content
+          const decryptedPost = await decryptObject(post, ['title', 'content'], encryptionKey);
+          
           return {
-            ...post,
+            ...decryptedPost,
             vote_score: voteScore,
             comment_count: commentCount?.length || 0
           };
@@ -133,6 +139,8 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
   };
 
   const fetchComments = async (postId: string) => {
+    if (!encryptionKey) return;
+    
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -148,7 +156,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       if (error) throw error;
 
-      // Calculate vote scores for each comment
+      // Calculate vote scores and decrypt comments
       const commentsWithVotes = await Promise.all(
         (data || []).map(async (comment) => {
           const { data: votes } = await supabase
@@ -158,8 +166,11 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
           
           const voteScore = votes?.reduce((sum, vote) => sum + (vote.vote_type || 0), 0) || 0;
           
+          // Decrypt comment content
+          const decryptedComment = await decryptObject(comment, ['content'], encryptionKey);
+          
           return {
-            ...comment,
+            ...decryptedComment,
             vote_score: voteScore
           };
         })
@@ -176,14 +187,23 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
   };
 
   const createPost = async () => {
-    if (!newPost.title.trim() || !user) return;
+    if (!newPost.title.trim() || !user || !encryptionKey) return;
 
     try {
+      // Encrypt post content before sending
+      const encryptedData = await encryptObject(
+        {
+          title: newPost.title.trim(),
+          content: newPost.content.trim() || null,
+        },
+        ['title', 'content'],
+        encryptionKey
+      );
+      
       const { error } = await supabase
         .from('posts')
         .insert({
-          title: newPost.title.trim(),
-          content: newPost.content.trim() || null,
+          ...encryptedData,
           topic_id: topic.id,
           author_id: user.id
         });
@@ -208,13 +228,20 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
   };
 
   const createComment = async (postId: string, parentId?: string) => {
-    if (!newComment.trim() || !user) return;
+    if (!newComment.trim() || !user || !encryptionKey) return;
 
     try {
+      // Encrypt comment content before sending
+      const encryptedData = await encryptObject(
+        { content: newComment.trim() },
+        ['content'],
+        encryptionKey
+      );
+      
       const { error } = await supabase
         .from('comments')
         .insert({
-          content: newComment.trim(),
+          content: encryptedData.content,
           post_id: postId,
           parent_id: parentId || null,
           author_id: user.id

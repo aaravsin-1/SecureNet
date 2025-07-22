@@ -4,11 +4,13 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { auditAuth } from '@/utils/auditLogger';
+import { generateEncryptionKey } from '@/utils/encryption';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  encryptionKey: string | null;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -20,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,9 +35,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Log auth events
         if (event === 'SIGNED_OUT') {
+          setEncryptionKey(null);
+          sessionStorage.removeItem('encryption_key');
           setTimeout(() => {
             auditAuth.logout();
           }, 0);
+        } else if (event === 'SIGNED_IN') {
+          // Generate or retrieve encryption key
+          let key = sessionStorage.getItem('encryption_key');
+          if (!key) {
+            key = generateEncryptionKey();
+            sessionStorage.setItem('encryption_key', key);
+          }
+          setEncryptionKey(key);
         }
       }
     );
@@ -43,6 +56,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Restore encryption key if user is logged in
+      if (session?.user) {
+        let key = sessionStorage.getItem('encryption_key');
+        if (!key) {
+          key = generateEncryptionKey();
+          sessionStorage.setItem('encryption_key', key);
+        }
+        setEncryptionKey(key);
+      }
+      
       setLoading(false);
     });
 
@@ -99,6 +123,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    setEncryptionKey(null);
+    sessionStorage.removeItem('encryption_key');
     await supabase.auth.signOut();
     toast({
       title: "Connection Terminated",
@@ -107,7 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, encryptionKey, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

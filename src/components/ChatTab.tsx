@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { DeleteChannelDialog } from './DeleteChannelDialog';
 import { isAdmin } from '@/utils/adminAuth';
+import { encryptObject, decryptObject } from '@/utils/encryption';
 
 interface ChatRoom {
   id: string;
@@ -52,23 +53,25 @@ export const ChatTab = () => {
     accessCode: '',
     deleteCode: ''
   });
-  const { user } = useAuth();
+  const { user, encryptionKey } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user && encryptionKey) {
       fetchRooms();
     }
-  }, [user]);
+  }, [user, encryptionKey]);
 
   useEffect(() => {
-    if (activeRoom) {
+    if (activeRoom && encryptionKey) {
       fetchMessages();
       subscribeToMessages();
     }
-  }, [activeRoom]);
+  }, [activeRoom, encryptionKey]);
 
   const fetchRooms = async () => {
+    if (!encryptionKey) return;
+    
     try {
       const { data, error } = await supabase
         .from('chat_rooms')
@@ -76,9 +79,17 @@ export const ChatTab = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRooms(data || []);
-      if (data && data.length > 0) {
-        setActiveRoom(data[0].id);
+      
+      // Decrypt sensitive data
+      const decryptedRooms = await Promise.all(
+        (data || []).map(async (room) => {
+          return await decryptObject(room, ['name', 'description'], encryptionKey);
+        })
+      );
+      
+      setRooms(decryptedRooms);
+      if (decryptedRooms && decryptedRooms.length > 0) {
+        setActiveRoom(decryptedRooms[0].id);
       }
     } catch (error) {
       toast({
@@ -92,7 +103,7 @@ export const ChatTab = () => {
   };
 
   const fetchMessages = async () => {
-    if (!activeRoom) return;
+    if (!activeRoom || !encryptionKey) return;
 
     try {
       const { data, error } = await supabase
@@ -108,7 +119,15 @@ export const ChatTab = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Decrypt message content
+      const decryptedMessages = await Promise.all(
+        (data || []).map(async (message) => {
+          return await decryptObject(message, ['content'], encryptionKey);
+        })
+      );
+      
+      setMessages(decryptedMessages);
     } catch (error) {
       toast({
         title: "Message Error",
@@ -131,8 +150,17 @@ export const ChatTab = () => {
           table: 'chat_messages',
           filter: `room_id=eq.${activeRoom}`
         },
-        (payload) => {
-          setMessages(prev => [...prev, payload.new as ChatMessage]);
+        async (payload) => {
+          if (!encryptionKey) return;
+          
+          // Decrypt new message
+          const decryptedMessage = await decryptObject(
+            payload.new as ChatMessage,
+            ['content'],
+            encryptionKey
+          );
+          
+          setMessages(prev => [...prev, decryptedMessage]);
         }
       )
       .subscribe();
@@ -143,14 +171,23 @@ export const ChatTab = () => {
   };
 
   const createChannel = async () => {
-    if (!newChannel.name.trim() || !user) return;
+    if (!newChannel.name.trim() || !user || !encryptionKey) return;
 
     try {
+      // Encrypt sensitive data before sending to backend
+      const encryptedData = await encryptObject(
+        {
+          name: newChannel.name.trim(),
+          description: newChannel.description.trim() || null,
+        },
+        ['name', 'description'],
+        encryptionKey
+      );
+      
       const { error } = await supabase
         .from('chat_rooms')
         .insert({
-          name: newChannel.name.trim(),
-          description: newChannel.description.trim() || null,
+          ...encryptedData,
           is_private: newChannel.isPrivate,
           access_code: newChannel.isPrivate ? newChannel.accessCode.trim() || null : null,
           delete_code: newChannel.deleteCode.trim() || null
@@ -232,15 +269,22 @@ export const ChatTab = () => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeRoom || !user) return;
+    if (!newMessage.trim() || !activeRoom || !user || !encryptionKey) return;
 
     try {
+      // Encrypt message content before sending
+      const encryptedData = await encryptObject(
+        { content: newMessage.trim() },
+        ['content'],
+        encryptionKey
+      );
+      
       const { error } = await supabase
         .from('chat_messages')
         .insert({
           room_id: activeRoom,
           author_id: user.id,
-          content: newMessage.trim()
+          content: encryptedData.content
         });
 
       if (error) throw error;
