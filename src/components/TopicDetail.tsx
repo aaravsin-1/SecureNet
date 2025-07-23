@@ -18,10 +18,12 @@ import {
   Users, 
   Shield, 
   Lock,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { encryptObject, decryptObject, generateSharedKey } from '@/utils/encryption';
+import { isAdmin } from '@/utils/adminAuth';
 
 interface Topic {
   id: string;
@@ -274,6 +276,32 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
     }
   };
 
+  const deletePost = async (postId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Post Deleted",
+        description: "The post has been permanently removed",
+      });
+
+      fetchPosts();
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the post",
+        variant: "destructive",
+      });
+    }
+  };
+
   const vote = async (type: 'post' | 'comment', id: string, voteType: number) => {
     if (!user) return;
 
@@ -469,6 +497,16 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
                   >
                     <ThumbsDown className="h-4 w-4" />
                   </Button>
+                  {(user?.id === post.author_id || isAdmin(user)) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deletePost(post.id)}
+                      className="text-muted-foreground hover:text-destructive ml-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
