@@ -98,7 +98,10 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
         .eq('topic_id', topic.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Posts fetch error:', error);
+        throw error;
+      }
 
       // Calculate vote scores and decrypt posts using topic-specific key
       const topicKey = await generateSharedKey(`topic_${topic.id}`);
@@ -220,7 +223,8 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
 
       setNewPost({ title: '', content: '' });
       setIsCreatePostOpen(false);
-      fetchPosts();
+      // Refresh posts immediately
+      await fetchPosts();
     } catch (error) {
       toast({
         title: "Post Failed",

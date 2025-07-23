@@ -63,10 +63,16 @@ export const ChatTab = () => {
   }, [user, encryptionKey]);
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    
     if (activeRoom && encryptionKey) {
       fetchMessages();
-      subscribeToMessages();
+      cleanup = subscribeToMessages();
     }
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [activeRoom, encryptionKey]);
 
   const fetchRooms = async () => {
@@ -143,7 +149,7 @@ export const ChatTab = () => {
     if (!activeRoom) return;
 
     const channel = supabase
-      .channel('chat_messages')
+      .channel(`chat_messages_${activeRoom}`)
       .on(
         'postgres_changes',
         {
@@ -155,10 +161,25 @@ export const ChatTab = () => {
         async (payload) => {
           if (!encryptionKey || !activeRoom) return;
           
+          // Fetch the complete message with profile data
+          const { data: messageData, error } = await supabase
+            .from('chat_messages')
+            .select(`
+              *,
+              profiles (
+                hacker_id,
+                display_name
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error || !messageData) return;
+          
           // Decrypt new message using room-specific key
           const roomKey = await generateSharedKey(`room_${activeRoom}`);
           const decryptedMessage = await decryptObject(
-            payload.new as ChatMessage,
+            messageData,
             ['content'],
             roomKey
           );
@@ -305,6 +326,8 @@ export const ChatTab = () => {
 
       if (error) throw error;
       setNewMessage('');
+      
+      // Don't manually add to messages - let real-time subscription handle it
     } catch (error) {
       toast({
         title: "Send Failed",
