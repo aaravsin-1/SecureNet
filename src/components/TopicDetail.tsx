@@ -410,31 +410,31 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+          <Button variant="outline" onClick={onBack} className="w-fit">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Topics
           </Button>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-2xl font-bold text-primary terminal-glow">{topic.title}</h2>
+          <div className="min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-primary terminal-glow truncate">{topic.title}</h2>
               {getSecurityBadge(topic.security_level || 1)}
             </div>
             {topic.description && (
-              <p className="text-muted-foreground mt-1">{topic.description}</p>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">{topic.description}</p>
             )}
           </div>
         </div>
         
         <Dialog open={isCreatePostOpen} onOpenChange={setIsCreatePostOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               New Post
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-background border-primary/30">
+          <DialogContent className="bg-background border-primary/30 mx-4 max-w-md">{/* Made responsive */}
             <DialogHeader>
               <DialogTitle className="text-primary">Create New Post</DialogTitle>
             </DialogHeader>
@@ -454,7 +454,7 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
                   value={newPost.content}
                   onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
                   placeholder="Enter post content (optional)"
-                  className="bg-input border-primary/30 min-h-24"
+                  className="bg-input border-primary/30 min-h-20"
                 />
               </div>
               <Button onClick={createPost} className="w-full bg-primary hover:bg-primary/90">
@@ -469,42 +469,42 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
       <div className="space-y-4">
         {posts.map((post) => (
           <Card key={post.id} className="bg-card/50 border-primary/30">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <CardTitle className="text-primary text-lg">{post.title}</CardTitle>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-primary text-base sm:text-lg break-words">{post.title}</CardTitle>
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
                     <span>{post.profiles?.hacker_id || 'Anonymous'}</span>
                     <span>•</span>
                     <span>{post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown'}</span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 flex-shrink-0">{/* Made responsive voting */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => vote('post', post.id, 1)}
-                    className="text-muted-foreground hover:text-primary"
+                    className="text-muted-foreground hover:text-primary h-8 w-8 p-0"
                   >
-                    <ThumbsUp className="h-4 w-4" />
+                    <ThumbsUp className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
-                  <span className="text-sm text-muted-foreground">{post.vote_score || 0}</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground min-w-6 text-center">{post.vote_score || 0}</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => vote('post', post.id, -1)}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                   >
-                    <ThumbsDown className="h-4 w-4" />
+                    <ThumbsDown className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                   {(user?.id === post.author_id || isAdmin(user)) && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deletePost(post.id)}
-                      className="text-muted-foreground hover:text-destructive ml-2"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   )}
                 </div>
@@ -513,17 +513,17 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
             
             <CardContent>
               {post.content && (
-                <p className="text-foreground mb-4">{post.content}</p>
+                <p className="text-foreground mb-4 text-sm sm:text-base break-words">{post.content}</p>
               )}
               
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => toggleComments(post.id)}
-                  className="text-muted-foreground"
+                  className="text-muted-foreground w-full sm:w-auto text-xs sm:text-sm"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   {selectedPost === post.id ? 'Hide' : 'Show'} Comments ({post.comment_count || 0})
                 </Button>
               </div>
@@ -532,26 +532,27 @@ export const TopicDetail = ({ topic, onBack }: TopicDetailProps) => {
               {selectedPost === post.id && (
                 <div className="mt-4 space-y-4 border-t border-primary/20 pt-4">
                   {/* New Comment */}
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                     <Input
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Write a comment..."
-                      className="flex-1 bg-input border-primary/30"
+                      className="flex-1 bg-input border-primary/30 text-sm"
                       onKeyPress={(e) => e.key === 'Enter' && createComment(post.id)}
                     />
                     <Button
                       onClick={() => createComment(post.id)}
                       disabled={!newComment.trim()}
                       size="sm"
-                      className="bg-primary hover:bg-primary/90"
+                      className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Send</span>
                     </Button>
                   </div>
 
                   {/* Comments List */}
-                  <ScrollArea className="max-h-64">
+                  <ScrollArea className="max-h-64">{/* Kept max height */}
                     <div className="space-y-3">
                       {comments[post.id]?.map((comment) => (
                         <div key={comment.id} className="bg-muted/30 p-3 rounded border-l-2 border-primary/30">

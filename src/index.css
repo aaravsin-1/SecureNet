@@ -110,3 +110,50 @@
     transform: translateX(100%);
   }
 }
+
+/* Add text clamp utility classes */
+@layer utilities {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* Ensure dropdowns have proper background and z-index */
+[data-radix-select-content] {
+  background: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  z-index: 50 !important;
+}
+
+[data-radix-dialog-content] {
+  background: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+/* Mobile responsive improvements */
+@media (max-width: 768px) {
+  .matrix-bg {
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 255, 65, 0.03) 100%);
+  }
+  
+  .terminal-glow {
+    text-shadow: 0 0 3px currentColor, 0 0 6px currentColor;
+  }
+}

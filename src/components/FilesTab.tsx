@@ -248,9 +248,9 @@ export const FilesTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-primary terminal-glow">Secure File Storage</h2>
-        <Badge className="bg-secondary text-secondary-foreground">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary terminal-glow">Secure File Storage</h2>
+        <Badge className="bg-secondary text-secondary-foreground w-fit">
           <Shield className="h-3 w-3 mr-1" />
           End-to-End Encrypted
         </Badge>
@@ -258,7 +258,7 @@ export const FilesTab = () => {
 
       {/* Upload Area */}
       <Card className="bg-card/50 border-primary/30 border-dashed">
-        <CardContent className="p-8">
+        <CardContent className="p-4 sm:p-8">
           <div
             className="text-center cursor-pointer"
             onDragOver={(e) => e.preventDefault()}
@@ -268,11 +268,11 @@ export const FilesTab = () => {
               onDrop(files);
             }}
           >
-            <Upload className="h-12 w-12 text-primary mx-auto mb-4 terminal-glow" />
-            <h3 className="text-lg font-semibold text-primary mb-2">
+            <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-primary mx-auto mb-4 terminal-glow" />
+            <h3 className="text-base sm:text-lg font-semibold text-primary mb-2">
               Drop files here or click to upload
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Files are automatically encrypted and secured
             </p>
             <input
@@ -285,17 +285,18 @@ export const FilesTab = () => {
                 onDrop(files);
               }}
             />
-            <div className="flex gap-2 justify-center">
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button 
                 variant="outline" 
                 onClick={handleQuickUploadClick}
                 disabled={uploading}
+                className="w-full sm:w-auto"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {uploading ? 'Encrypting...' : 'Quick Upload'}
               </Button>
               <Button 
-                className="bg-primary hover:bg-primary/90" 
+                className="bg-primary hover:bg-primary/90 w-full sm:w-auto" 
                 onClick={() => setUploadDialogOpen(true)}
                 disabled={uploading}
               >
@@ -311,57 +312,62 @@ export const FilesTab = () => {
       <div className="grid gap-4">
         {files.map((file, index) => (
           <Card key={index} className="bg-card/50 border-primary/30">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center space-x-4">
-                <File className="h-8 w-8 text-primary" />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground">{file.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {formatFileSize(file.size)} • {new Date(file.created_at || file.lastModified).toLocaleDateString()}
-                  </p>
-                  {file.description && (
-                    <p className="text-sm text-muted-foreground mt-1 italic">
-                      {file.description}
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                  <File className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-foreground text-sm sm:text-base truncate">{file.name}</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {formatFileSize(file.size)} • {new Date(file.created_at || file.lastModified).toLocaleDateString()}
                     </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="border-primary text-primary">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Encrypted
-                </Badge>
-                {file.isPrivate !== undefined && (
-                  <Badge variant={file.isPrivate ? "default" : "secondary"}>
-                    {file.isPrivate ? (
-                      <>
-                        <EyeOff className="h-3 w-3 mr-1" />
-                        Private
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-3 w-3 mr-1" />
-                        Public
-                      </>
+                    {file.description && (
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 italic line-clamp-2">
+                        {file.description}
+                      </p>
                     )}
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="border-primary text-primary text-xs">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Encrypted
                   </Badge>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => downloadFile(file)}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-destructive border-destructive hover:bg-destructive/10"
-                  onClick={() => deleteFile(index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  {file.isPrivate !== undefined && (
+                    <Badge variant={file.isPrivate ? "default" : "secondary"} className="text-xs">
+                      {file.isPrivate ? (
+                        <>
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          Private
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 mr-1" />
+                          Public
+                        </>
+                      )}
+                    </Badge>
+                  )}
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => downloadFile(file)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive border-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                      onClick={() => deleteFile(index)}
+                    >
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -219,16 +219,16 @@ export const TopicsTab = () => {
       </div>;
   }
   return <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-primary terminal-glow">Discussion Topics</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary terminal-glow">Discussion Topics</h2>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
               New Topic
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-background border-primary/30">
+          <DialogContent className="bg-background border-primary/30 mx-4 max-w-md">
             <DialogHeader>
               <DialogTitle className="text-primary">Create New Topic</DialogTitle>
             </DialogHeader>
@@ -245,7 +245,7 @@ export const TopicsTab = () => {
                 <Textarea value={newTopic.description} onChange={e => setNewTopic(prev => ({
                 ...prev,
                 description: e.target.value
-              }))} placeholder="Enter topic description (optional)" className="bg-input border-primary/30" />
+              }))} placeholder="Enter topic description (optional)" className="bg-input border-primary/30 min-h-20" />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Security Level</label>
@@ -256,7 +256,7 @@ export const TopicsTab = () => {
                   <SelectTrigger className="bg-input border-primary/30">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border-primary/30">
                     <SelectItem value="1">PUBLIC - Anyone can access</SelectItem>
                     <SelectItem value="2">RESTRICTED - Limited access</SelectItem>
                     <SelectItem value="3">CLASSIFIED - Highest security</SelectItem>
@@ -278,16 +278,16 @@ export const TopicsTab = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {topics.map(topic => <Card key={topic.id} className="bg-card/50 border-primary/30 hover:border-primary/50 transition-colors security-indicator">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <CardTitle className="text-primary text-lg">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-primary text-base sm:text-lg truncate">
                     {topic.title}
                   </CardTitle>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {getSecurityBadge(topic.security_level || 1)}
                   {isAdmin(user) && (
                     <Button
@@ -305,27 +305,27 @@ export const TopicsTab = () => {
                   )}
                 </div>
               </div>
-              <CardDescription className="text-muted-foreground">
+              <CardDescription className="text-muted-foreground text-sm line-clamp-2">
                 {topic.description || "No description available"}
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+            <CardContent className="pt-0">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex items-center">
                     <Users className="h-4 w-4 mr-1" />
-                    {topic.member_count || 0}
+                    <span>{topic.member_count || 0}</span>
                   </div>
-                  <div className="flex items-center mx-0 px-px">
+                  <div className="flex items-center">
                     <MessageSquare className="h-4 w-4 mr-1" />
-                    0 posts
+                    <span>0 posts</span>
                   </div>
                   <div className="text-xs">
                     {topic.created_at ? new Date(topic.created_at).toLocaleDateString() : 'Unknown'}
                   </div>
                 </div>
-                <Button onClick={() => joinTopic(topic)} size="sm" className="bg-primary hover:bg-primary/90 mx-0 py-0">
+                <Button onClick={() => joinTopic(topic)} size="sm" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-xs sm:text-sm">
                   {topic.security_level && topic.security_level > 1 && topic.access_code ? 'Enter Code' : 'Join'}
                 </Button>
               </div>

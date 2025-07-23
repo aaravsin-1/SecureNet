@@ -346,22 +346,22 @@ export const ChatTab = () => {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+    <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">{/* Changed to flex on mobile, grid on lg+ */}
       {/* Room List */}
-      <Card className="col-span-1 bg-card/50 border-primary/30">
-        <CardHeader>
-          <CardTitle className="text-primary flex items-center justify-between">
+      <Card className="lg:col-span-1 bg-card/50 border-primary/30 h-64 lg:h-auto">{/* Fixed height on mobile */}
+        <CardHeader className="pb-3">
+          <CardTitle className="text-primary flex items-center justify-between text-sm sm:text-base">
             <div className="flex items-center">
-              <Hash className="h-5 w-5 mr-2" />
-              Channels
+              <Hash className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+              <span>Channels</span>
             </div>
             <Dialog open={isCreateChannelOpen} onOpenChange={setIsCreateChannelOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                  <Plus className="h-4 w-4" />
+                <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/10 h-6 w-6 p-0">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-background border-primary/30">
+              <DialogContent className="bg-background border-primary/30 mx-4 max-w-md">{/* Made responsive */}
                 <DialogHeader>
                   <DialogTitle className="text-primary">Create New Channel</DialogTitle>
                 </DialogHeader>
@@ -427,27 +427,27 @@ export const ChatTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-48 lg:h-full">{/* Fixed height for mobile */}
             {rooms.map((room) => (
               <div
                 key={room.id}
-                className={`p-3 border-b border-primary/20 hover:bg-primary/10 transition-colors ${
+                className={`p-2 sm:p-3 border-b border-primary/20 hover:bg-primary/10 transition-colors ${
                   activeRoom === room.id ? 'bg-primary/20' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div 
-                    className="flex items-center space-x-2 cursor-pointer flex-1"
+                    className="flex items-center space-x-2 cursor-pointer flex-1 min-w-0"
                     onClick={() => joinRoom(room)}
                   >
                     {room.is_private ? (
-                      <Shield className="h-4 w-4 text-secondary" />
+                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-secondary flex-shrink-0" />
                     ) : (
-                      <Hash className="h-4 w-4 text-primary" />
+                      <Hash className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     )}
-                    <span className="text-sm font-medium text-foreground">{room.name}</span>
+                    <span className="text-xs sm:text-sm font-medium text-foreground truncate">{room.name}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {isAdmin(user) && (
                       <Button
                         variant="ghost"
@@ -478,7 +478,7 @@ export const ChatTab = () => {
                   </div>
                 </div>
                 {room.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{room.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{room.description}</p>
                 )}
               </div>
             ))}
@@ -487,31 +487,31 @@ export const ChatTab = () => {
       </Card>
 
       {/* Chat Area */}
-      <Card className="col-span-3 bg-card/50 border-primary/30 flex flex-col">
-        <CardHeader>
-          <CardTitle className="text-primary flex items-center">
-            <Hash className="h-5 w-5 mr-2" />
-            {rooms.find(r => r.id === activeRoom)?.name || 'Select a channel'}
-            <Users className="h-4 w-4 ml-auto text-muted-foreground" />
+      <Card className="lg:col-span-3 bg-card/50 border-primary/30 flex flex-col min-h-96">{/* Added min-height for mobile */}
+        <CardHeader className="pb-3">{/* Reduced padding */}
+          <CardTitle className="text-primary flex items-center text-sm sm:text-base">
+            <Hash className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+            <span className="truncate">{rooms.find(r => r.id === activeRoom)?.name || 'Select a channel'}</span>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 ml-auto text-muted-foreground flex-shrink-0" />
           </CardTitle>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col p-0">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 p-2 sm:p-4">{/* Responsive padding */}
+            <div className="space-y-3 sm:space-y-4">
               {messages.map((message) => (
-                <div key={message.id} className="flex space-x-3">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-sm font-semibold text-primary">
+                <div key={message.id} className="flex space-x-2 sm:space-x-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-1">
+                      <span className="text-xs sm:text-sm font-semibold text-primary truncate">
                         {message.profiles?.hacker_id || 'Anonymous'}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {message.created_at ? new Date(message.created_at).toLocaleTimeString() : ''}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground">{message.content}</p>
+                    <p className="text-xs sm:text-sm text-foreground break-words">{message.content}</p>
                   </div>
                 </div>
               ))}
@@ -519,8 +519,8 @@ export const ChatTab = () => {
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="p-4 border-t border-primary/30">
-            <form onSubmit={sendMessage} className="flex space-x-2">
+          <div className="p-2 sm:p-4 border-t border-primary/30">
+            <form onSubmit={sendMessage} className="flex space-x-2">{/* Responsive padding */}
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
